@@ -1,53 +1,66 @@
 # SmartDairy Server
 
-REST API на [Vapor 4](https://vapor.codes) с PostgreSQL (Fluent), JWT (Bearer) и кэшем рейтинга в Redis. Форматы JSON — **snake_case**, как в iOS-клиенте (`JSONEncoder`/`JSONDecoder` с `convertToSnakeCase`).
+REST API для приложения «дневник» на **FastAPI** + **PostgreSQL** (SQLAlchemy 2 async) + **Redis** (кэш рейтинга). Формат JSON — **snake_case**, как в iOS-клиенте.
+
+## Требования
+
+- Python 3.11+
+- Docker (для Postgres и Redis) — или свои инстансы
 
 ## Запуск
 
-1. Поднять PostgreSQL и Redis:
+1. Поднять БД и Redis:
 
    ```bash
    docker compose up -d
    ```
 
-2. Скопировать переменные окружения (при необходимости отредактировать):
+2. Виртуальное окружение и зависимости:
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate   # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. Переменные окружения (при необходимости скопировать и отредактировать):
 
    ```bash
    cp .env.example .env
    ```
 
-3. Собрать и запустить:
+4. Сервер:
 
    ```bash
-   swift run SmartDairyServer
+   uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
    ```
 
-По умолчанию сервер слушает `http://127.0.0.1:8080` (см. `HOST` / `PORT` в `.env`).
+Документация OpenAPI: `http://127.0.0.1:8080/docs`.
 
 ## Тестовые учётные записи
 
-| Роль      | Email                     | Пароль            |
-|-----------|---------------------------|-------------------|
-| Студент   | `student@smartdairy.test` | `SmartDairy2025!` |
+| Роль      | Email                       | Пароль            |
+|-----------|-----------------------------|-------------------|
+| Студент   | `student@smartdairy.test`   | `SmartDairy2025!` |
 | Ассистент | `assistant@smartdairy.test` | `SmartDairy2025!` |
 
-В сиде также есть студенты `s1`, `s2` (для демонстрации рейтинга); у них тот же пароль.
+Дополнительно в сиде: студенты `s1`, `s2` (тот же пароль).
 
-## Эндпоинты (совместимость с iOS)
+## Эндпоинты (`/api/v1/...`)
 
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/logout` (Bearer)
-- `GET /api/v1/users/me` (Bearer)
-- `GET /api/v1/student/diary/summary` (Bearer, роль student)
-- `GET /api/v1/student/subjects/:subjectId/detail` (Bearer, student)
-- `GET /api/v1/ranking/board` (Bearer)
-- `GET /api/v1/assistant/group/students` (Bearer, assistant)
-- `GET /api/v1/assistant/students/:studentId/subjects` (Bearer, assistant)
-- `GET /api/v1/assistant/students/:studentId/subjects/:subjectId/grading` (Bearer, assistant)
-- `PUT /api/v1/assistant/students/:studentId/subjects/:subjectId/grades` (Bearer, assistant)
+- `POST /auth/login`
+- `POST /auth/logout` (Bearer)
+- `GET /users/me` (Bearer)
+- `GET /student/diary/summary` (Bearer, student)
+- `GET /student/subjects/{subject_id}/detail` (Bearer, student)
+- `GET /ranking/board` (Bearer)
+- `GET /assistant/group/students` (Bearer, assistant)
+- `GET /assistant/students/{student_id}/subjects` (Bearer, assistant)
+- `GET /assistant/students/{student_id}/subjects/{subject_id}/grading` (Bearer, assistant)
+- `PUT /assistant/students/{student_id}/subjects/{subject_id}/grades` (Bearer, assistant)
 
-Итоговая оценка по предмету хранится в таблице `enrollments` и пересчитывается при сохранении оценок ассистентом как \(\sum_i w_i \cdot m_i\) по элементам контроля.
+Справочник текстовых формул: `app/Resources/grading_formulas.json`.
 
-## Справочник формул
+## Публичный / LAN IP
 
-Текстовые формулы из учебных планов лежат в ресурсе `Sources/App/Resources/grading_formulas.json` (можно использовать как справочник; расчёт в API — по весам и баллам в БД).
+Слушайте `0.0.0.0` (по умолчанию в `HOST`) и подключайте клиент к `http://<IP-адрес_машины>:8080`. Для устройства в той же Wi‑Fi сети используйте локальный IP Mac, не `127.0.0.1`.
