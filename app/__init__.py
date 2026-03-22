@@ -1,0 +1,1 @@
+# SmartDairy FastAPI application
